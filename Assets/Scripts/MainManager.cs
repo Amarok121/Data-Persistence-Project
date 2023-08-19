@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using TMPro;
 
 public class MainManager : MonoBehaviour
 {
@@ -10,7 +12,8 @@ public class MainManager : MonoBehaviour
     public int LineCount = 6;
     public Rigidbody Ball;
 
-    public Text ScoreText;
+    public TMP_Text ScoreText;
+    public Text BestText;
     public GameObject GameOverText;
     
     private bool m_Started = false;
@@ -18,7 +21,28 @@ public class MainManager : MonoBehaviour
     
     private bool m_GameOver = false;
 
-    
+
+
+
+    public static MainManager Instance;
+    public static int BestScore;
+    public static string TempName;
+    public static string PlayerName;
+
+    private void Awake()
+    {
+        if (Instance != null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -36,6 +60,10 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+        LoadPoint();
+       
+        
+
     }
 
     private void Update()
@@ -57,7 +85,8 @@ public class MainManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+                SceneManager.LoadScene(0);
             }
         }
     }
@@ -68,9 +97,58 @@ public class MainManager : MonoBehaviour
         ScoreText.text = $"Score : {m_Points}";
     }
 
+    
+
     public void GameOver()
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+
+
+        if (BestScore < m_Points) 
+        {
+            PlayerName = TempName;
+            Instance.SavePoint();
+
+        }
+            
+    }
+
+
+
+    [System.Serializable]
+    class SaveData
+    {
+        public int BestScore;
+        public string PlayerName;
+    }
+
+
+    public void SavePoint()
+    {
+        SaveData data = new SaveData();
+        if (data.BestScore < m_Points)
+            data.BestScore = m_Points;
+        data.PlayerName = PlayerName;
+
+        string json = JsonUtility.ToJson(data);
+
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    public void LoadPoint()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            
+            BestScore = data.BestScore;
+
+            PlayerName = data.PlayerName;
+            BestText.text = "Best Score: " + PlayerName + ": " + BestScore;
+        }
     }
 }
